@@ -60,10 +60,19 @@ jobs:
           # Find the latest installed Android build-tools directory on the runner
           BUILD_TOOLS_DIR=$(ls -1d $ANDROID_HOME/build-tools/* | tail -n 1)
           D8_TOOL="$BUILD_TOOLS_DIR/d8"
+          
+          # Find the latest Android platform jar (android.jar)
+          PLATFORM_DIR=$(ls -1d $ANDROID_HOME/platforms/android-* | sort -V | tail -n 1)
+          ANDROID_JAR="$PLATFORM_DIR/android.jar"
+          
           echo "Using d8 tool from: $D8_TOOL"
+          echo "Using android.jar from: $ANDROID_JAR"
           
           # Convert standard Java bytecode to DEX bytecode packaged as perses_android.jar
+          # --min-api 26 assumes you are running this on Android 8.0 or newer
           $D8_TOOL bazel-bin/src/org/perses/perses_deploy.jar \
+            --lib "$ANDROID_JAR" \
+            --min-api 26 \
             --output bazel-bin/src/org/perses/perses_android.jar
 
       # ------ UPLOAD ARTIFACTS ------
