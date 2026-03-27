@@ -41,7 +41,8 @@ maven_install(
         "org.apache.commons:commons-text:1.9",
         "org.checkerframework:checker-qual:2.11.0",
         "org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.5.31",
-        "org.jfree:jfreechart:1.5.0",
+ 	"org.jetbrains.kotlinx:kotlinx-html-jvm:0.7.3",
+	"org.jfree:jfreechart:1.5.0",
         "org.jgrapht:jgrapht-core:1.3.0",
         "org.ow2.asm:asm-all:5.2",
         "junit:junit:4.13.2",
@@ -49,7 +50,6 @@ maven_install(
     ],
     fetch_sources = True,
     repositories = [
-        "https://jcenter.bintray.com",
         "https://maven.google.com",
         "https://repo1.maven.org/maven2",
     ],
