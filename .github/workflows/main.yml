@@ -42,13 +42,7 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-bazel-
 
-      - name: Setup Android Environment (Android Target Only)
-        if: matrix.target == 'Android'
-        run: |
-          # GitHub's ubuntu-latest runner comes with the Android SDK & NDK pre-installed.
-          # We export the environment variables just in case your Bazel WORKSPACE expects them.
-          echo "ANDROID_HOME=$ANDROID_HOME" >> $GITHUB_ENV
-          echo "ANDROID_NDK_HOME=$ANDROID_NDK_HOME" >> $GITHUB_ENV
+      # ------ BUILD STEPS ------
 
       - name: Build Perses (Linux / Android)
         if: matrix.os == 'ubuntu-latest'
@@ -58,9 +52,34 @@ jobs:
         if: matrix.os == 'windows-2022'
         run: bazel --output_user_root=C:\b build //src/org/perses:perses_deploy.jar
 
-      - name: Upload Artifact
+      # ------ ANDROID SPECIFIC: CONVERT TO DEX ------
+
+      - name: Convert to Dalvik Executable (Android Target Only)
+        if: matrix.target == 'Android'
+        run: |
+          # Find the latest installed Android build-tools directory on the runner
+          BUILD_TOOLS_DIR=$(ls -1d $ANDROID_HOME/build-tools/* | tail -n 1)
+          D8_TOOL="$BUILD_TOOLS_DIR/d8"
+          echo "Using d8 tool from: $D8_TOOL"
+          
+          # Convert standard Java bytecode to DEX bytecode packaged as perses_android.jar
+          $D8_TOOL bazel-bin/src/org/perses/perses_deploy.jar \
+            --output bazel-bin/src/org/perses/perses_android.jar
+
+      # ------ UPLOAD ARTIFACTS ------
+
+      - name: Upload Artifact (Linux / Windows)
+        if: matrix.target != 'Android'
         uses: actions/upload-artifact@v4
         with:
           name: perses_deploy_${{ matrix.target }}
           path: bazel-bin/src/org/perses/perses_deploy.jar
+          if-no-files-found: error
+
+      - name: Upload Artifact (Android)
+        if: matrix.target == 'Android'
+        uses: actions/upload-artifact@v4
+        with:
+          name: perses_deploy_Android
+          path: bazel-bin/src/org/perses/perses_android.jar
           if-no-files-found: error
