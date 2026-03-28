@@ -57,35 +57,43 @@ jobs:
       - name: Convert to Dalvik Executable (Android Target Only)
         if: matrix.target == 'Android'
         run: |
-          # 1. Find tools
+          # 1. Locate tools and paths
           BUILD_TOOLS_DIR=$(ls -1d $ANDROID_HOME/build-tools/* | tail -n 1)
           D8_TOOL="$BUILD_TOOLS_DIR/d8"
           PLATFORM_DIR=$(ls -1d $ANDROID_HOME/platforms/android-* | sort -V | tail -n 1)
           ANDROID_JAR="$PLATFORM_DIR/android.jar"
           
-          ORIGINAL_JAR="bazel-bin/src/org/perses/perses_deploy.jar"
-          ANDROID_JAR_OUT="bazel-bin/src/org/perses/perses_android.jar"
-
-          # 2. Run d8 to generate classes.dex
-          # We output to a temporary directory to avoid conflicts
+          # Use absolute paths outside of the bazel-bin symlink tree
+          ORIGINAL_JAR="$(pwd)/bazel-bin/src/org/perses/perses_deploy.jar"
+          WORKING_JAR="$(pwd)/perses_android.jar"
+          
+          echo "Using d8 tool from: $D8_TOOL"
+          
+          # 2. Copy the original JAR to a writable location
+          cp "$ORIGINAL_JAR" "$WORKING_JAR"
+          
+          # 3. Run d8 to generate classes.dex
           mkdir -p dex_out
           $D8_TOOL "$ORIGINAL_JAR" \
             --lib "$ANDROID_JAR" \
             --min-api 26 \
             --output dex_out/
           
-          # 3. Create the final Android JAR
-          # We start with a copy of the original JAR (which has all the .g4 files and resources)
-          cp "$ORIGINAL_JAR" "$ANDROID_JAR_OUT"
+          # 4. Add classes.dex to the root of the JAR
+          # -j (junk paths) ensures classes.dex is at the root, not inside dex_out/
+          zip -ju "$WORKING_JAR" dex_out/classes.dex
           
-          # 4. Add the classes.dex into the root of that JAR
-          # Android's dalvikvm needs 'classes.dex' at the root to run
-          cd dex_out
-          zip -u "../$ANDROID_JAR_OUT" classes.dex
-          
-          # 5. (Optional) Remove the old .class files to save space
-          # This isn't strictly necessary but makes the JAR cleaner for Android
-          zip -d "../$ANDROID_JAR_OUT" "**/*.class"
+          # 5. Clean up .class files (optional but recommended for Android)
+          zip -d "$WORKING_JAR" "**/*.class"
+
+      - name: Upload Artifact (Android)
+        if: matrix.target == 'Android'
+        uses: actions/upload-artifact@v4
+        with:
+          name: perses_deploy_Android
+          # Note: The path is now in the root workspace
+          path: perses_android.jar
+          if-no-files-found: error
 
       # ------ UPLOAD ARTIFACTS ------
 
