@@ -104,11 +104,3 @@ jobs:
           name: perses_deploy_${{ matrix.target }}
           path: bazel-bin/src/org/perses/perses_deploy.jar
           if-no-files-found: error
-
-      - name: Upload Artifact (Android)
-        if: matrix.target == 'Android'
-        uses: actions/upload-artifact@v4
-        with:
-          name: perses_deploy_Android
-          path: perses_android.jar
-          if-no-files-found: error
