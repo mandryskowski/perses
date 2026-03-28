@@ -62,36 +62,36 @@ jobs:
           D8_TOOL="$BUILD_TOOLS_DIR/d8"
           PLATFORM_DIR=$(ls -1d $ANDROID_HOME/platforms/android-* | sort -V | tail -n 1)
           ANDROID_JAR="$PLATFORM_DIR/android.jar"
+          ORIGINAL_JAR_PATH="bazel-bin/src/org/perses/perses_deploy.jar"
           
-          # Use absolute paths outside of the bazel-bin symlink tree
-          ORIGINAL_JAR="$(pwd)/bazel-bin/src/org/perses/perses_deploy.jar"
-          WORKING_JAR="$(pwd)/perses_android.jar"
+          # 2. Create a fresh, writable staging directory
+          mkdir -p staging_dir
+          cd staging_dir
           
-          echo "Using d8 tool from: $D8_TOOL"
+          # 3. Extract the original JAR to get resources (like .g4 files)
+          jar -xf "../$ORIGINAL_JAR_PATH"
           
-          # 2. Copy the original JAR to a writable location
-          cp "$ORIGINAL_JAR" "$WORKING_JAR"
+          # 4. Remove the original Java .class files (not needed on Android)
+          find . -name "*.class" -type f -delete
           
-          # 3. Run d8 to generate classes.dex
-          mkdir -p dex_out
-          $D8_TOOL "$ORIGINAL_JAR" \
+          # 5. Run d8 to generate classes.dex and put it directly into staging
+          $D8_TOOL "../$ORIGINAL_JAR_PATH" \
             --lib "$ANDROID_JAR" \
             --min-api 26 \
-            --output dex_out/
+            --output .
           
-          # 4. Add classes.dex to the root of the JAR
-          # -j (junk paths) ensures classes.dex is at the root, not inside dex_out/
-          zip -ju "$WORKING_JAR" dex_out/classes.dex
+          # 6. Create the final Android JAR from the staging contents
+          # This includes the new classes.dex AND all original resources (.g4, etc.)
+          jar -cf ../perses_android.jar *
           
-          # 5. Clean up .class files (optional but recommended for Android)
-          zip -d "$WORKING_JAR" "**/*.class"
+          cd ..
+          echo "Successfully created $(pwd)/perses_android.jar"
 
       - name: Upload Artifact (Android)
         if: matrix.target == 'Android'
         uses: actions/upload-artifact@v4
         with:
           name: perses_deploy_Android
-          # Note: The path is now in the root workspace
           path: perses_android.jar
           if-no-files-found: error
 
@@ -110,5 +110,5 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: perses_deploy_Android
-          path: bazel-bin/src/org/perses/perses_android.jar
+          path: perses_android.jar
           if-no-files-found: error
