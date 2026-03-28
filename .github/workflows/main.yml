@@ -48,6 +48,18 @@ jobs:
         if: matrix.os == 'ubuntu-latest'
         run: bazel build //src/org/perses:perses_deploy.jar
 
+      - name: Patch for Android Compatibility (Android Target Only)
+        if: matrix.target == 'Android'
+        run: |
+          # Replace "/usr/bin/env bash" with "sh"
+          # Android doesn't have /usr/bin/env or bash by default
+          # 'sh' is always available in the Android PATH
+          grep -r "/usr/bin/env bash" src/ || true
+          find src/ -type f -exec sed -i 's|/usr/bin/env bash|sh|g' {} +
+          
+          # Also patch any hardcoded /tmp/ paths to /data/local/tmp/ if they exist
+          find src/ -type f -exec sed -i 's|"/tmp/"|"/data/local/tmp/"|g' {} +
+
       - name: Build Perses (Windows)
         if: matrix.os == 'windows-2022'
         run: bazel --output_user_root=C:\b build //src/org/perses:perses_deploy.jar
