@@ -57,23 +57,35 @@ jobs:
       - name: Convert to Dalvik Executable (Android Target Only)
         if: matrix.target == 'Android'
         run: |
-          # Find the latest installed Android build-tools directory on the runner
+          # 1. Find tools
           BUILD_TOOLS_DIR=$(ls -1d $ANDROID_HOME/build-tools/* | tail -n 1)
           D8_TOOL="$BUILD_TOOLS_DIR/d8"
-          
-          # Find the latest Android platform jar (android.jar)
           PLATFORM_DIR=$(ls -1d $ANDROID_HOME/platforms/android-* | sort -V | tail -n 1)
           ANDROID_JAR="$PLATFORM_DIR/android.jar"
           
-          echo "Using d8 tool from: $D8_TOOL"
-          echo "Using android.jar from: $ANDROID_JAR"
-          
-          # Convert standard Java bytecode to DEX bytecode packaged as perses_android.jar
-          # --min-api 26 assumes you are running this on Android 8.0 or newer
-          $D8_TOOL bazel-bin/src/org/perses/perses_deploy.jar \
+          ORIGINAL_JAR="bazel-bin/src/org/perses/perses_deploy.jar"
+          ANDROID_JAR_OUT="bazel-bin/src/org/perses/perses_android.jar"
+
+          # 2. Run d8 to generate classes.dex
+          # We output to a temporary directory to avoid conflicts
+          mkdir -p dex_out
+          $D8_TOOL "$ORIGINAL_JAR" \
             --lib "$ANDROID_JAR" \
             --min-api 26 \
-            --output bazel-bin/src/org/perses/perses_android.jar
+            --output dex_out/
+          
+          # 3. Create the final Android JAR
+          # We start with a copy of the original JAR (which has all the .g4 files and resources)
+          cp "$ORIGINAL_JAR" "$ANDROID_JAR_OUT"
+          
+          # 4. Add the classes.dex into the root of that JAR
+          # Android's dalvikvm needs 'classes.dex' at the root to run
+          cd dex_out
+          zip -u "../$ANDROID_JAR_OUT" classes.dex
+          
+          # 5. (Optional) Remove the old .class files to save space
+          # This isn't strictly necessary but makes the JAR cleaner for Android
+          zip -d "../$ANDROID_JAR_OUT" "**/*.class"
 
       # ------ UPLOAD ARTIFACTS ------
 
