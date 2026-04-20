@@ -62,7 +62,12 @@ jobs:
 
       - name: Build Perses (Windows)
         if: matrix.os == 'windows-2022'
-        run: bazel --output_user_root=C:\b build //src/org/perses:perses_deploy.jar
+        shell: bash
+        run: |
+          # Fix MSYS2 mktemp yielding incompatible paths to native Windows Java 
+          # by exporting runner's dedicated temp directory using forward slashes.
+          export TMPDIR="${RUNNER_TEMP//\\//}"
+          bazel --output_user_root="C:/b" build --action_env=TMPDIR //src/org/perses:perses_deploy.jar
 
       # ------ ANDROID SPECIFIC: CONVERT TO DEX ------
 
