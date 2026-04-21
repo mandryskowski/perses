@@ -65,9 +65,18 @@ jobs:
         shell: bash
         run: |
           # Fix MSYS2 mktemp yielding incompatible absolute paths to native Windows Java 
-          # by using a relative path for TMPDIR. MSYS2 mktemp will generate relative 
-          # paths (e.g. ./tmp.XYZ) natively understood by both MSYS tools and Java.
-          bazel --output_user_root="C:/b" build --action_env=TMPDIR=. //src/org/perses:perses_deploy.jar
+          # Wrap mktemp to return Windows paths natively understood by Java
+          cat << 'EOF' > mktemp_wrap.sh
+          #!/usr/bin/env bash
+          out=$(/usr/bin/mktemp "$@")
+          cygpath -m "$out"
+          EOF
+          chmod +x mktemp_wrap.sh
+          
+          WRAPPER_PATH="$(pwd)/mktemp_wrap.sh"
+          find . -type f ! -name "mktemp_wrap.sh" \( -name "BUILD" -o -name "BUILD.bazel" -o -name "*.bzl" -o -name "*.sh" \) -exec sed -i "s|\bmktemp\b|$WRAPPER_PATH|g" {} +
+          
+          bazel --output_user_root="C:/b" build //src/org/perses:perses_deploy.jar
 
       # ------ ANDROID SPECIFIC: CONVERT TO DEX ------
 
