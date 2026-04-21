@@ -16,8 +16,9 @@ def _antlr_codegen(
     commands = [
         "GRAMMAR_FILE=$(location %s)" % parser_grammar_file,
         "GRAMMAR_FILE_NAME=$$(basename $${GRAMMAR_FILE})",
-        "TMP=$$(mktemp -d tmp.XXXXXX)",
-        "cp $${GRAMMAR_FILE} $${TMP}",
+        "TMP=$$(mktemp -d)",
+        "if command -v cygpath >/dev/null 2>&1; then TMP=$$(cygpath -m \"$$TMP\"); fi",
+        "cp $${GRAMMAR_FILE} \"$${TMP}\"",
     ]
     common_antlr_args = [
         "\"$(location //src/org/perses/grammar:antlr_tool)\"",
@@ -29,7 +30,7 @@ def _antlr_codegen(
     if lexer_grammar_file:
         commands.append("LEXER_GRAMMAR_FILE=$(location %s)" % lexer_grammar_file)
         commands.append("LEXER_GRAMMAR_FILE_NAME=$$(basename $${LEXER_GRAMMAR_FILE})")
-        commands.append("cp $${LEXER_GRAMMAR_FILE} $${TMP}")
+        commands.append("cp $${LEXER_GRAMMAR_FILE} \"$${TMP}\"")
 
         antlr_args_for_lexer = common_antlr_args[:] + ["\"$${TMP}/$${LEXER_GRAMMAR_FILE_NAME}\""]
         commands.append(" ".join(antlr_args_for_lexer))
