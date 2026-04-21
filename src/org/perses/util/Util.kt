@@ -188,9 +188,13 @@ object Util {
 
   @JvmStatic
   fun setExecutable(path: Path) {
-    val permissions = Files.getPosixFilePermissions(path)
-    permissions.add(PosixFilePermission.OWNER_EXECUTE)
-    Files.setPosixFilePermissions(path, permissions)
+    try {
+      val perms = Files.getPosixFilePermissions(path)
+      perms.add(PosixFilePermission.OWNER_EXECUTE)
+      Files.setPosixFilePermissions(path, perms)
+    } catch (e: UnsupportedOperationException) {
+        path.toFile().setExecutable(true)
+    }
   }
 
   @JvmStatic
