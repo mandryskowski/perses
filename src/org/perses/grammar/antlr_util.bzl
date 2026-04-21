@@ -17,7 +17,7 @@ def _antlr_codegen(
         "set -e",
         "GRAMMAR_FILE=$(location %s)" % parser_grammar_file,
         "GRAMMAR_FILE_NAME=$$(basename $${GRAMMAR_FILE})",
-        "TMP_DIR=\"$(@D)/tmp_antlr_$${GRAMMAR_FILE_NAME}\"",
+        "TMP_DIR=\"$(@D)/%s_tmp\"" % genrule_name,
         "mkdir -p \"$$TMP_DIR\"",
         "TMP_DIR=\"$$(cd \"$$TMP_DIR\" && pwd)\"",
         "if command -v cygpath >/dev/null 2>&1; then TMP_DIR=$$(cygpath -m \"$$TMP_DIR\"); fi",
