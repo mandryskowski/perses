@@ -64,6 +64,8 @@ jobs:
         if: matrix.os == 'windows-2022'
         shell: bash
         run: |
+          # The mktemp issue in MSYS2 yielding incompatible absolute paths is bypassed
+          # by using a relative path template (mktemp -d tmp.XXXXXX) in the bazel rules.
           bazel --output_user_root="C:/b" build //src/org/perses:perses_deploy.jar
 
       # ------ ANDROID SPECIFIC: CONVERT TO DEX ------

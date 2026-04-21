@@ -23,7 +23,6 @@ def _antlr_codegen(
         "\"$(location //src/org/perses/grammar:antlr_tool)\"",
         "-no-listener",
         "-no-visitor",
-        "-o \"$${TMP}\"",
         "-lib \"$${TMP}\"",  # For antlr to locate the tokens files generated from the lexer grammar.
         "-package %s" % java_pkg_name,
     ]
