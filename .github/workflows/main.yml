@@ -19,8 +19,6 @@ jobs:
             os: ubuntu-latest
           - target: Windows
             os: windows-2022
-          - target: Android
-            os: ubuntu-latest
 
     steps:
       - name: Checkout repository
@@ -42,77 +40,16 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-bazel-
 
-      # ------ BUILD STEPS ------
-
-      - name: Build Perses (Linux / Android)
+      - name: Build Perses (Linux)
         if: matrix.os == 'ubuntu-latest'
         run: bazel build //src/org/perses:perses_deploy.jar
-
-      - name: Patch for Android Compatibility (Android Target Only)
-        if: matrix.target == 'Android'
-        run: |
-          # Replace "/usr/bin/env bash" with "sh"
-          # Android doesn't have /usr/bin/env or bash by default
-          # 'sh' is always available in the Android PATH
-          grep -r "/usr/bin/env bash" src/ || true
-          find src/ -type f -exec sed -i 's|/usr/bin/env bash|sh|g' {} +
-          
-          # Also patch any hardcoded /tmp/ paths to /data/local/tmp/ if they exist
-          find src/ -type f -exec sed -i 's|"/tmp/"|"/data/local/tmp/"|g' {} +
 
       - name: Build Perses (Windows)
         if: matrix.os == 'windows-2022'
         shell: bash
-        run: |
-          bazel --output_user_root="C:/b" build //src/org/perses:perses_deploy.jar
+        run: bazel --output_user_root="C:/b" build //src/org/perses:perses_deploy.jar
 
-      # ------ ANDROID SPECIFIC: CONVERT TO DEX ------
-
-      - name: Convert to Dalvik Executable (Android Target Only)
-        if: matrix.target == 'Android'
-        run: |
-          # 1. Locate tools and paths
-          BUILD_TOOLS_DIR=$(ls -1d $ANDROID_HOME/build-tools/* | tail -n 1)
-          D8_TOOL="$BUILD_TOOLS_DIR/d8"
-          PLATFORM_DIR=$(ls -1d $ANDROID_HOME/platforms/android-* | sort -V | tail -n 1)
-          ANDROID_JAR="$PLATFORM_DIR/android.jar"
-          ORIGINAL_JAR_PATH="bazel-bin/src/org/perses/perses_deploy.jar"
-          
-          # 2. Create a fresh, writable staging directory
-          mkdir -p staging_dir
-          cd staging_dir
-          
-          # 3. Extract the original JAR to get resources (like .g4 files)
-          jar -xf "../$ORIGINAL_JAR_PATH"
-          
-          # 4. Remove the original Java .class files (not needed on Android)
-          find . -name "*.class" -type f -delete
-          
-          # 5. Run d8 to generate classes.dex and put it directly into staging
-          $D8_TOOL "../$ORIGINAL_JAR_PATH" \
-            --lib "$ANDROID_JAR" \
-            --min-api 26 \
-            --output .
-          
-          # 6. Create the final Android JAR from the staging contents
-          # This includes the new classes.dex AND all original resources (.g4, etc.)
-          jar -cf ../perses_android.jar *
-          
-          cd ..
-          echo "Successfully created $(pwd)/perses_android.jar"
-
-      - name: Upload Artifact (Android)
-        if: matrix.target == 'Android'
-        uses: actions/upload-artifact@v4
-        with:
-          name: perses_deploy_Android
-          path: perses_android.jar
-          if-no-files-found: error
-
-      # ------ UPLOAD ARTIFACTS ------
-
-      - name: Upload Artifact (Linux / Windows)
-        if: matrix.target != 'Android'
+      - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
           name: perses_deploy_${{ matrix.target }}
