@@ -16,13 +16,14 @@ def _antlr_codegen(
     commands = [
         "GRAMMAR_FILE=$(location %s)" % parser_grammar_file,
         "GRAMMAR_FILE_NAME=$$(basename $${GRAMMAR_FILE})",
-        "TMP=$$(mktemp -d)",
+        "TMP=$$(mktemp -d tmp.XXXXXX)",
         "cp $${GRAMMAR_FILE} $${TMP}",
     ]
     common_antlr_args = [
         "\"$(location //src/org/perses/grammar:antlr_tool)\"",
         "-no-listener",
         "-no-visitor",
+        "-o \"$${TMP}\"",
         "-lib \"$${TMP}\"",  # For antlr to locate the tokens files generated from the lexer grammar.
         "-package %s" % java_pkg_name,
     ]
