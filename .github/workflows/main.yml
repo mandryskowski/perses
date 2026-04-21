@@ -17,10 +17,10 @@ jobs:
         include:
           - target: Linux
             os: ubuntu-latest
+          - target: macOS
+            os: macos-latest
           - target: Windows
             os: windows-2022
-          - target: Android
-            os: ubuntu-latest
 
     steps:
       - name: Checkout repository
@@ -42,21 +42,18 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-bazel-
 
-      - name: Setup Android Environment (Android Target Only)
-        if: matrix.target == 'Android'
-        run: |
-          # GitHub's ubuntu-latest runner comes with the Android SDK & NDK pre-installed.
-          # We export the environment variables just in case your Bazel WORKSPACE expects them.
-          echo "ANDROID_HOME=$ANDROID_HOME" >> $GITHUB_ENV
-          echo "ANDROID_NDK_HOME=$ANDROID_NDK_HOME" >> $GITHUB_ENV
-
-      - name: Build Perses (Linux / Android)
+      - name: Build Perses (Linux)
         if: matrix.os == 'ubuntu-latest'
+        run: bazel build //src/org/perses:perses_deploy.jar
+
+      - name: Build Perses (macOS)
+        if: matrix.os == 'macos-latest'
         run: bazel build //src/org/perses:perses_deploy.jar
 
       - name: Build Perses (Windows)
         if: matrix.os == 'windows-2022'
-        run: bazel --output_user_root=C:\b build //src/org/perses:perses_deploy.jar
+        shell: bash
+        run: bazel --output_user_root="C:/b" build //src/org/perses:perses_deploy.jar
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
