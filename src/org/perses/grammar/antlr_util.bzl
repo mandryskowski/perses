@@ -14,39 +14,42 @@ def _antlr_codegen(
         fail("The current pkg name '%s' should end with %s" % (current_pkg_name, java_pkg_folder))
 
     commands = [
+        "set -e",
         "GRAMMAR_FILE=$(location %s)" % parser_grammar_file,
         "GRAMMAR_FILE_NAME=$$(basename $${GRAMMAR_FILE})",
-        "TMP=$$(mktemp -d)",
-        "if command -v cygpath >/dev/null 2>&1; then TMP=$$(cygpath -m \"$$TMP\"); fi",
-        "cp $${GRAMMAR_FILE} \"$${TMP}\"",
+        "TMP_DIR=\"$(@D)/tmp_antlr_$${GRAMMAR_FILE_NAME}\"",
+        "mkdir -p \"$$TMP_DIR\"",
+        "TMP_DIR=\"$$(cd \"$$TMP_DIR\" && pwd)\"",
+        "if command -v cygpath >/dev/null 2>&1; then TMP_DIR=$$(cygpath -m \"$$TMP_DIR\"); fi",
+        "cp $${GRAMMAR_FILE} \"$$TMP_DIR\"/",
     ]
     common_antlr_args = [
         "\"$(location //src/org/perses/grammar:antlr_tool)\"",
         "-no-listener",
         "-no-visitor",
-        "-lib \"$${TMP}\"",  # For antlr to locate the tokens files generated from the lexer grammar.
+        "-lib \"$$TMP_DIR\"",  # For antlr to locate the tokens files generated from the lexer grammar.
         "-package %s" % java_pkg_name,
     ]
     if lexer_grammar_file:
         commands.append("LEXER_GRAMMAR_FILE=$(location %s)" % lexer_grammar_file)
         commands.append("LEXER_GRAMMAR_FILE_NAME=$$(basename $${LEXER_GRAMMAR_FILE})")
-        commands.append("cp $${LEXER_GRAMMAR_FILE} \"$${TMP}\"")
+        commands.append("cp $${LEXER_GRAMMAR_FILE} \"$$TMP_DIR\"/")
 
-        antlr_args_for_lexer = common_antlr_args[:] + ["\"$${TMP}/$${LEXER_GRAMMAR_FILE_NAME}\""]
+        antlr_args_for_lexer = common_antlr_args[:] + ["\"$$TMP_DIR/$${LEXER_GRAMMAR_FILE_NAME}\""]
         commands.append(" ".join(antlr_args_for_lexer))
 
-    antlr_args_for_parser = common_antlr_args[:] + ["\"$${TMP}/$${GRAMMAR_FILE_NAME}\""]
+    antlr_args_for_parser = common_antlr_args[:] + ["\"$$TMP_DIR/$${GRAMMAR_FILE_NAME}\""]
     commands.append(" ".join(antlr_args_for_parser))
 
     for file_to_copy in names_of_java_files_to_keep:
-        commands.append("cp \"$${TMP}/%s\" $(location %s)" % (file_to_copy, file_to_copy))
+        commands.append("cp \"$$TMP_DIR/%s\" $(location %s)" % (file_to_copy, file_to_copy))
 
     grammar_files = [parser_grammar_file] + ([lexer_grammar_file] if lexer_grammar_file else [])
     native.genrule(
         name = genrule_name,
         outs = names_of_java_files_to_keep,
         srcs = grammar_files,
-        cmd = " ; \\\n".join(commands),
+        cmd = "\n".join(commands),
         tools = ["//src/org/perses/grammar:antlr_tool"],
     )
     deps = deps or []

@@ -76,4 +76,5 @@ java_binary(
     main_class = "org.antlr.v4.Tool",
     visibility = ["//visibility:public"],
     runtime_deps = ["@maven//:org_antlr_antlr4"],
+    jvm_flags = ["-Xmx512m"],
 )
