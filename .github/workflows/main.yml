@@ -17,6 +17,8 @@ jobs:
         include:
           - target: Linux
             os: ubuntu-latest
+          - target: macOS
+            os: macos-latest
           - target: Windows
             os: windows-2022
 
@@ -42,6 +44,10 @@ jobs:
 
       - name: Build Perses (Linux)
         if: matrix.os == 'ubuntu-latest'
+        run: bazel build //src/org/perses:perses_deploy.jar
+
+      - name: Build Perses (macOS)
+        if: matrix.os == 'macos-latest'
         run: bazel build //src/org/perses:perses_deploy.jar
 
       - name: Build Perses (Windows)
