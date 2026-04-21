@@ -16,7 +16,7 @@ def _antlr_codegen(
     commands = [
         "GRAMMAR_FILE=$(location %s)" % parser_grammar_file,
         "GRAMMAR_FILE_NAME=$$(basename $${GRAMMAR_FILE})",
-        "TMP=$$(mktemp -d)",
+        "TMP=$$(mktemp -d tmp.XXXXXX)",
         "cp $${GRAMMAR_FILE} $${TMP}",
     ]
     common_antlr_args = [

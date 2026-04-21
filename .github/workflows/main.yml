@@ -64,10 +64,7 @@ jobs:
         if: matrix.os == 'windows-2022'
         shell: bash
         run: |
-          # Fix MSYS2 mktemp yielding incompatible absolute paths to native Windows Java 
-          # by using a relative path for TMPDIR. MSYS2 mktemp will generate relative 
-          # paths (e.g. ./tmp.XYZ) natively understood by both MSYS tools and Java.
-          bazel --output_user_root="C:/b" build --action_env=TMPDIR=. //src/org/perses:perses_deploy.jar
+          bazel --output_user_root="C:/b" build //src/org/perses:perses_deploy.jar
 
       # ------ ANDROID SPECIFIC: CONVERT TO DEX ------
 
